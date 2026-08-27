@@ -40,6 +40,8 @@ npx prisma db push --schema=apps/api/prisma/schema.prisma
 # 4. REBUILD PACKAGES & WEB BUNDLE
 echo -e "${CYAN}[4/5] Compiling engine, API, and web bundles...${NC}"
 npm run build
+chmod o+x "$HOME" 2>/dev/null || true
+chmod -R o+rX "${PROJECT_DIR}/apps/web/dist" 2>/dev/null || true
 
 # 5. RESTART API IN PM2 & RELOAD NGINX
 echo -e "${CYAN}[5/5] Reloading PM2 and Nginx...${NC}"

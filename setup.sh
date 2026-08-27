@@ -141,6 +141,10 @@ echo -e "${GREEN}[✓] PM2 daemon active and configured for system boot.${NC}"
 
 # 8. CONFIGURE NGINX REVERSE PROXY
 echo -e "${CYAN}[7/7] Configuring Nginx reverse proxy for ${DOMAIN}...${NC}"
+# Grant www-data traversal permission to /home/ubuntu so Nginx can read web dist files
+chmod o+x "$HOME" 2>/dev/null || true
+chmod -R o+rX "${PROJECT_DIR}/apps/web/dist" 2>/dev/null || true
+
 NGINX_CONF="/etc/nginx/sites-available/${DOMAIN}"
 
 sudo tee "$NGINX_CONF" > /dev/null <<EOF
