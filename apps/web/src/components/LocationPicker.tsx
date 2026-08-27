@@ -282,13 +282,14 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({ location, onChan
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 14 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <MapPin size={20} color="var(--gold-400)" />
-          <div>
-            <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <MapPin size={18} color="var(--gold-400)" style={{ flexShrink: 0 }} />
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-primary)' }}>
               {location.name}
-            </h3>
-            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+            </span>
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>•</span>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
               Lat: {location.latitude}° | Lon: {location.longitude}° | TZ: {location.timezone}
             </span>
           </div>

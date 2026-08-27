@@ -204,13 +204,13 @@ export const App: React.FC = () => {
       {/* Footer */}
       <footer style={{
         borderTop: '1px solid var(--border-subtle)',
-        padding: '20px 20px',
+        padding: '16px 16px',
         textAlign: 'center',
         fontSize: '0.8rem',
         color: 'var(--text-muted)',
         backgroundColor: 'rgba(10, 13, 20, 0.95)'
       }}>
-        <div style={{ maxWidth: 1400, margin: '0 auto' }}>
+        <div style={{ width: '100%' }}>
           <div>
             🕉️ <strong>Real Panchangam Platform</strong> • High-Precision Drigganita calculations for any location globally.
           </div>
@@ -223,7 +223,7 @@ export const App: React.FC = () => {
               onClick={() => setIsMuttSettingsOpen(true)}
               style={{ background: 'none', border: 'none', color: 'var(--gold-400)', cursor: 'pointer', fontSize: '0.8rem' }}
             >
-              Configure Mutt Settings
+              Configure Tradition Settings
             </button>
             <span>•</span>
             <a href="/docs" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--gold-400)', textDecoration: 'none' }}>

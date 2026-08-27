@@ -64,11 +64,11 @@ export const Header: React.FC<HeaderProps> = ({
       position: 'sticky',
       top: 0,
       zIndex: 100,
-      padding: '10px 20px'
+      padding: '10px 16px'
     }}>
       <div style={{
-        maxWidth: 1400,
-        margin: '0 auto',
+        width: '100%',
+        margin: 0,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -235,10 +235,10 @@ export const Header: React.FC<HeaderProps> = ({
               padding: '6px 10px',
               backgroundColor: selectedMutt !== 'STANDARD' ? 'rgba(245, 158, 11, 0.15)' : 'transparent'
             }}
-            title="Custom Sampradaya & Mutt Rules Settings"
+            title="Custom Sampradaya & Tradition Settings"
           >
-            <Settings size={14} />
-            Mutt: <strong style={{ color: selectedMutt !== 'STANDARD' ? 'var(--gold-400)' : 'var(--text-primary)' }}>{muttDisplayName}</strong>
+            <Compass size={14} />
+            Tradition: <strong style={{ color: selectedMutt !== 'STANDARD' ? 'var(--gold-400)' : 'var(--text-primary)' }}>{muttDisplayName}</strong>
           </button>
 
           {/* Direct link to OpenAPI / Swagger docs */}
