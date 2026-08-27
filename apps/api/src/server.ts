@@ -107,6 +107,7 @@ export async function buildServer() {
       documentation: '/docs',
       endpoints: {
         dailyPanchangam: '/api/v1/panchangam',
+        realTimePanchangam: '/api/v1/panchangam/realtime',
         muttComparison: '/api/v1/mutt/compare',
         shraddhaCalculation: '/api/v1/shraddha/calculate',
         locationSearch: '/api/v1/locations/search',

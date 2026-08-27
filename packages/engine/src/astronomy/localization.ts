@@ -341,4 +341,32 @@ export function getLocalizedTithi(paksha: 'Shukla' | 'Krishna', numberInPaksha: 
   return `${pTerm.english} • ${tTerm.english}`;
 }
 
+export const LOCALIZED_CHOGHADIYAS: Record<string, LocalizedTerm> = {
+  Amrit: { devanagari: 'अमृत', transliterated: 'Amṛta', english: 'Amrit (Nectar - Best)' },
+  Shubh: { devanagari: 'शुभ', transliterated: 'Śubha', english: 'Shubh (Auspicious)' },
+  Labh: { devanagari: 'लाभ', transliterated: 'Lābha', english: 'Labh (Gain / Profit)' },
+  Char: { devanagari: 'चर', transliterated: 'Cara', english: 'Char (Movable / Neutral)' },
+  Rog: { devanagari: 'रोग', transliterated: 'Roga', english: 'Rog (Disease / Inauspicious)' },
+  Kaal: { devanagari: 'काल', transliterated: 'Kāla', english: 'Kaal (Loss / Inauspicious)' },
+  Udveg: { devanagari: 'उद्वेग', transliterated: 'Udvega', english: 'Udveg (Anxiety / Inauspicious)' }
+};
+
+export function formatChoghadiya(choghadiyaType: string, mode: LanguageMode): string {
+  const term = LOCALIZED_CHOGHADIYAS[choghadiyaType] || { devanagari: choghadiyaType, transliterated: choghadiyaType, english: choghadiyaType };
+  return getLocalizedText(term, mode);
+}
+
+export function formatHora(horaPlanet: string, mode: LanguageMode): string {
+  const pTerm = LOCALIZED_PLANETS[horaPlanet] || { devanagari: horaPlanet, transliterated: horaPlanet, english: horaPlanet };
+  const pName = getLocalizedText(pTerm, mode);
+  if (mode === LanguageMode.SANSKRIT_DEVANAGARI) {
+    return `${pName}होरा`;
+  }
+  if (mode === LanguageMode.SANSKRIT_TRANSLITERATED) {
+    return `${pName} Horā`;
+  }
+  return `${pName} Hora`;
+}
+
+
 

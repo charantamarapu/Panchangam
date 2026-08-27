@@ -25,7 +25,15 @@ import {
   LUNAR_MASA_NAMES,
   RITU_NAMES,
   AyanamshaType,
-  CalendarSystemType
+  CalendarSystemType,
+  ChoghadiyaType,
+  AuspiciousnessType,
+  ChoghadiyaDefinition,
+  CHOGHADIYA_DEFINITIONS,
+  DAY_CHOGHADIYA_TABLE,
+  NIGHT_CHOGHADIYA_TABLE,
+  CHALDEAN_HORA_ORDER,
+  WEEKDAY_FIRST_HORA_INDEX
 } from './constants.js';
 import { LOCALIZED_SAMVATSARAS } from './localization.js';
 
@@ -210,6 +218,146 @@ export interface PanchangamOutput {
   divisions: DayDivisions;
   solarLunarInfo: SolarLunarInfo;
   planets: PlanetaryPosition[];
+}
+
+export interface LagnaInfo {
+  index: number; // 0 to 11
+  rashi: string; // Sanskrit name
+  english: string;
+  degreesInRashi: number; // 0 to 30
+  formatted: string;
+  lord: string;
+  element: string;
+  navamshaIndex: number;
+  navamshaRashi: string;
+  nakshatraIndex: number;
+  nakshatraName: string;
+  pada: number;
+  nextLagnaTime: Date;
+}
+
+export interface HoraSlot {
+  index: number;
+  lord: string;
+  start: Date;
+  end: Date;
+  quality: AuspiciousnessType;
+  isDaytime: boolean;
+}
+
+export interface CurrentHoraInfo {
+  slot: HoraSlot;
+  timeRemainingMinutes: number;
+}
+
+export interface ChoghadiyaSlot {
+  index: number;
+  type: ChoghadiyaType;
+  sanskrit: string;
+  transliterated: string;
+  english: string;
+  ruler: string;
+  quality: AuspiciousnessType;
+  meaning: string;
+  start: Date;
+  end: Date;
+  isDaytime: boolean;
+}
+
+export interface CurrentChoghadiyaInfo {
+  slot: ChoghadiyaSlot;
+  timeRemainingMinutes: number;
+}
+
+export interface RealTimeAngas {
+  tithi: {
+    index: number;
+    name: string;
+    paksha: 'Shukla' | 'Krishna';
+    numberInPaksha: number;
+    fractionElapsed: number;
+    startTime: Date;
+    endTime: Date;
+    remainingMs: number;
+    nextTithiName: string;
+  };
+  vara: {
+    index: number;
+    name: string;
+    english: string;
+    planet: string;
+  };
+  nakshatra: {
+    index: number;
+    name: string;
+    pada: number;
+    fractionElapsed: number;
+    degreesInNakshatra: number;
+    startTime: Date;
+    endTime: Date;
+    remainingMs: number;
+    lord: string;
+    deity: string;
+    nextNakshatraName: string;
+    moonRashi: string;
+    moonDegreeInRashi: number;
+  };
+  yoga: {
+    index: number;
+    name: string;
+    fractionElapsed: number;
+    endTime: Date;
+    remainingMs: number;
+    quality: AuspiciousnessType;
+  };
+  karana: {
+    index: number;
+    name: string;
+    type: 'Chara' | 'Sthira';
+    fractionElapsed: number;
+    endTime: Date;
+    remainingMs: number;
+    isVishtiBhadra: boolean;
+  };
+}
+
+export interface RealTimeActivePeriods {
+  activeKala: string;
+  isRahuKalam: boolean;
+  rahuKalamRemainingMs: number | null;
+  nextRahuKalamStart: Date | null;
+  isYamagandam: boolean;
+  yamagandamRemainingMs: number | null;
+  isGulikaKalam: boolean;
+  gulikaRemainingMs: number | null;
+  isAbhijit: boolean;
+  abhijitRemainingMs: number | null;
+  isAparahnaPitru: boolean;
+}
+
+export interface RealTimePanchangam {
+  timestamp: string;
+  localTimeFormatted: string;
+  location: ObserverLocation;
+  ayanamsha: {
+    type: AyanamshaType;
+    value: number;
+    formatted: string;
+  };
+  currentAngas: RealTimeAngas;
+  lagna: LagnaInfo;
+  currentHora: CurrentHoraInfo;
+  currentChoghadiya: CurrentChoghadiyaInfo;
+  activePeriods: RealTimeActivePeriods;
+  sunMoon: {
+    sunLongitude: number;
+    moonLongitude: number;
+    sunAltitude: number;
+    isDaylight: boolean;
+    moonIlluminationPct: number;
+    moonPhaseName: string;
+  };
+  dayPanchangam: PanchangamOutput;
 }
 
 /**
@@ -896,3 +1044,496 @@ export function calculateDailyPanchangam(
     planets
   };
 }
+
+/**
+ * Robust search for exact start time of the current Tithi (stepping backwards).
+ */
+export function findTithiStart(startDate: Date): Date {
+  const t0 = Astronomy.MakeTime(startDate);
+  const s0 = Astronomy.SunPosition(t0).elon;
+  const m0 = Astronomy.Ecliptic(Astronomy.GeoVector(Astronomy.Body.Moon, t0, true)).elon;
+  const diff0 = (m0 - s0 + 360) % 360;
+  const currentIdx = Math.floor(diff0 / 12);
+  const targetDeg = currentIdx * 12;
+
+  let prev = diff0;
+  let unwrapped = diff0;
+
+  for (let step = 1; step <= 144; step++) {
+    const prevDate = new Date(startDate.getTime() - step * 15 * 60000);
+    const prevTime = Astronomy.MakeTime(prevDate);
+    const curS = Astronomy.SunPosition(prevTime).elon;
+    const curM = Astronomy.Ecliptic(Astronomy.GeoVector(Astronomy.Body.Moon, prevTime, true)).elon;
+    const curDiff = (curM - curS + 360) % 360;
+
+    let delta = (curDiff - prev + 360) % 360;
+    if (delta > 180) delta -= 360;
+    unwrapped += delta;
+    prev = curDiff;
+
+    if (unwrapped <= targetDeg) {
+      let low = prevDate.getTime();
+      let high = startDate.getTime() - (step - 1) * 15 * 60000;
+      for (let i = 0; i < 20; i++) {
+        const mid = (low + high) / 2;
+        const midTime = Astronomy.MakeTime(new Date(mid));
+        const midS = Astronomy.SunPosition(midTime).elon;
+        const midM = Astronomy.Ecliptic(Astronomy.GeoVector(Astronomy.Body.Moon, midTime, true)).elon;
+        const d = (midM - midS + 360) % 360;
+        let rel = (d - (targetDeg % 360) + 540) % 360 - 180;
+        if (rel <= 0) low = mid;
+        else high = mid;
+      }
+      return new Date((low + high) / 2);
+    }
+  }
+  return new Date(startDate.getTime() - 24 * 3600000);
+}
+
+/**
+ * Robust search for exact start time of the current Nakshatra (stepping backwards).
+ */
+export function findNakshatraStart(startDate: Date, ayanamshaType: AyanamshaType): Date {
+  const span = 360 / 27; // 13.333333333333334
+  const t0 = Astronomy.MakeTime(startDate);
+  const aya0 = getAyanamsha(startDate, ayanamshaType);
+  const m0 = Astronomy.Ecliptic(Astronomy.GeoVector(Astronomy.Body.Moon, t0, true)).elon;
+  const sidereal0 = (m0 - aya0 + 360) % 360;
+
+  const currentIdx = Math.floor(sidereal0 / span);
+  const targetDeg = currentIdx * span;
+
+  let prev = sidereal0;
+  let unwrapped = sidereal0;
+
+  for (let step = 1; step <= 144; step++) {
+    const prevDate = new Date(startDate.getTime() - step * 15 * 60000);
+    const prevTime = Astronomy.MakeTime(prevDate);
+    const aya = getAyanamsha(prevDate, ayanamshaType);
+    const m = Astronomy.Ecliptic(Astronomy.GeoVector(Astronomy.Body.Moon, prevTime, true)).elon;
+    const curSidereal = (m - aya + 360) % 360;
+
+    let delta = (curSidereal - prev + 360) % 360;
+    if (delta > 180) delta -= 360;
+    unwrapped += delta;
+    prev = curSidereal;
+
+    if (unwrapped <= targetDeg) {
+      let low = prevDate.getTime();
+      let high = startDate.getTime() - (step - 1) * 15 * 60000;
+      for (let i = 0; i < 20; i++) {
+        const mid = (low + high) / 2;
+        const midDate = new Date(mid);
+        const midTime = Astronomy.MakeTime(midDate);
+        const midAya = getAyanamsha(midDate, ayanamshaType);
+        const midM = Astronomy.Ecliptic(Astronomy.GeoVector(Astronomy.Body.Moon, midTime, true)).elon;
+        const midSidereal = (midM - midAya + 360) % 360;
+        let rel = (midSidereal - (targetDeg % 360) + 540) % 360 - 180;
+        if (rel <= 0) low = mid;
+        else high = mid;
+      }
+      return new Date((low + high) / 2);
+    }
+  }
+  return new Date(startDate.getTime() - 24 * 3600000);
+}
+
+/**
+ * Computes high-precision Sidereal Ascendant (Udaya Lagna) for any date and location.
+ */
+export function calculateLagna(
+  targetDate: Date,
+  location: ObserverLocation,
+  ayanamsha: number
+): LagnaInfo {
+  const time = Astronomy.MakeTime(targetDate);
+  const gst = Astronomy.SiderealTime(time);
+  const lstHours = (gst + location.longitude / 15 + 24) % 24;
+  const theta = lstHours * 15 * (Math.PI / 180);
+  const eps = 23.4392911 * (Math.PI / 180); // True obliquity of ecliptic
+  const phi = location.latitude * (Math.PI / 180);
+
+  const y = Math.cos(theta);
+  const x = -Math.sin(theta) * Math.cos(eps) - Math.tan(phi) * Math.sin(eps);
+  let ascTropical = Math.atan2(y, x) * (180 / Math.PI);
+  if (ascTropical < 0) ascTropical += 360;
+
+  const ascSidereal = (ascTropical - ayanamsha + 360) % 360;
+  const rashiIndex = Math.floor(ascSidereal / 30) % 12;
+  const degInRashi = ascSidereal % 30;
+
+  const nakshatraSpan = 360 / 27; // 13.333333333
+  const nakIndex = Math.floor(ascSidereal / nakshatraSpan) % 27;
+  const nakRem = ascSidereal % nakshatraSpan;
+  const pada = Math.floor(nakRem / (nakshatraSpan / 4)) + 1;
+
+  const navamshaTotalIdx = Math.floor(ascSidereal / (nakshatraSpan / 4)) % 108;
+  const navamshaRashiIdx = navamshaTotalIdx % 12;
+
+  const rashiInfo = RASHIS[rashiIndex];
+
+  // Calculate when next Lagna rises
+  let nextLagnaTime = new Date(targetDate.getTime() + Math.max(10, (30 - degInRashi) * 4) * 60000);
+  for (let s = 1; s <= 90; s++) {
+    const checkDate = new Date(targetDate.getTime() + s * 2 * 60000);
+    const cTime = Astronomy.MakeTime(checkDate);
+    const cGst = Astronomy.SiderealTime(cTime);
+    const cLstHours = (cGst + location.longitude / 15 + 24) % 24;
+    const cTheta = cLstHours * 15 * (Math.PI / 180);
+    const cy = Math.cos(cTheta);
+    const cx = -Math.sin(cTheta) * Math.cos(eps) - Math.tan(phi) * Math.sin(eps);
+    let cAscTrop = Math.atan2(cy, cx) * (180 / Math.PI);
+    if (cAscTrop < 0) cAscTrop += 360;
+    const cAscSid = (cAscTrop - ayanamsha + 360) % 360;
+    const cRashi = Math.floor(cAscSid / 30) % 12;
+    if (cRashi !== rashiIndex) {
+      nextLagnaTime = checkDate;
+      break;
+    }
+  }
+
+  return {
+    index: rashiIndex,
+    rashi: rashiInfo.sanskrit,
+    english: rashiInfo.english,
+    degreesInRashi: Number(degInRashi.toFixed(2)),
+    formatted: formatDegrees(degInRashi),
+    lord: rashiInfo.lord,
+    element: rashiInfo.element,
+    navamshaIndex: navamshaRashiIdx,
+    navamshaRashi: RASHIS[navamshaRashiIdx].sanskrit,
+    nakshatraIndex: nakIndex,
+    nakshatraName: NAKSHATRAS[nakIndex].sanskrit,
+    pada,
+    nextLagnaTime
+  };
+}
+
+/**
+ * Computes active Hora for current instant.
+ */
+export function calculateHora(
+  targetDate: Date,
+  dayTimes: DayTimes,
+  location: ObserverLocation
+): CurrentHoraInfo {
+  const sunrise = dayTimes.sunrise.getTime();
+  const sunset = dayTimes.sunset.getTime();
+  const target = targetDate.getTime();
+
+  let isDaytime = true;
+  let slotIndex = 0;
+  let slotStart: Date;
+  let slotEnd: Date;
+  let lord: string;
+  const dayOfWeek = dayTimes.sunrise.getDay();
+
+  if (target >= sunrise && target < sunset) {
+    isDaytime = true;
+    const slotLen = (sunset - sunrise) / 12;
+    slotIndex = Math.min(11, Math.max(0, Math.floor((target - sunrise) / slotLen)));
+    slotStart = new Date(sunrise + slotIndex * slotLen);
+    slotEnd = new Date(sunrise + (slotIndex + 1) * slotLen);
+    const startHora = WEEKDAY_FIRST_HORA_INDEX[dayOfWeek];
+    lord = CHALDEAN_HORA_ORDER[(startHora + slotIndex) % 7];
+  } else if (target >= sunset) {
+    isDaytime = false;
+    const nextDayTimes = getDayTimes(new Date(dayTimes.sunrise.getTime() + 24 * 3600000), location);
+    const nextSunrise = nextDayTimes.sunrise.getTime();
+    const slotLen = (nextSunrise - sunset) / 12;
+    slotIndex = Math.min(11, Math.max(0, Math.floor((target - sunset) / slotLen)));
+    slotStart = new Date(sunset + slotIndex * slotLen);
+    slotEnd = new Date(sunset + (slotIndex + 1) * slotLen);
+    const startHora = WEEKDAY_FIRST_HORA_INDEX[dayOfWeek];
+    lord = CHALDEAN_HORA_ORDER[(startHora + 12 + slotIndex) % 7];
+  } else {
+    isDaytime = false;
+    const prevDayTimes = getDayTimes(new Date(dayTimes.sunrise.getTime() - 24 * 3600000), location);
+    const prevSunset = prevDayTimes.sunset.getTime();
+    const prevVara = (dayOfWeek + 6) % 7;
+    const slotLen = (sunrise - prevSunset) / 12;
+    slotIndex = Math.min(11, Math.max(0, Math.floor((target - prevSunset) / slotLen)));
+    slotStart = new Date(prevSunset + slotIndex * slotLen);
+    slotEnd = new Date(prevSunset + (slotIndex + 1) * slotLen);
+    const startHora = WEEKDAY_FIRST_HORA_INDEX[prevVara];
+    lord = CHALDEAN_HORA_ORDER[(startHora + 12 + slotIndex) % 7];
+  }
+
+  const horaQualityMap: Record<string, AuspiciousnessType> = {
+    Guru: 'Auspicious',
+    Shukra: 'Auspicious',
+    Budha: 'Auspicious',
+    Chandra: 'Auspicious',
+    Surya: 'Neutral',
+    Mangala: 'Inauspicious',
+    Shani: 'Inauspicious'
+  };
+
+  const quality = horaQualityMap[lord] || 'Neutral';
+  const remainingMinutes = Math.max(0, Math.round((slotEnd.getTime() - target) / 60000));
+
+  return {
+    slot: {
+      index: isDaytime ? slotIndex : slotIndex + 12,
+      lord,
+      start: slotStart,
+      end: slotEnd,
+      quality,
+      isDaytime
+    },
+    timeRemainingMinutes: remainingMinutes
+  };
+}
+
+/**
+ * Computes active Choghadiya for current instant.
+ */
+export function calculateChoghadiya(
+  targetDate: Date,
+  dayTimes: DayTimes,
+  location: ObserverLocation
+): CurrentChoghadiyaInfo {
+  const sunrise = dayTimes.sunrise.getTime();
+  const sunset = dayTimes.sunset.getTime();
+  const target = targetDate.getTime();
+
+  let isDaytime = true;
+  let slotIndex = 0;
+  let slotStart: Date;
+  let slotEnd: Date;
+  let type: ChoghadiyaType;
+  const dayOfWeek = dayTimes.sunrise.getDay();
+
+  if (target >= sunrise && target < sunset) {
+    isDaytime = true;
+    const slotLen = (sunset - sunrise) / 8;
+    slotIndex = Math.min(7, Math.max(0, Math.floor((target - sunrise) / slotLen)));
+    slotStart = new Date(sunrise + slotIndex * slotLen);
+    slotEnd = new Date(sunrise + (slotIndex + 1) * slotLen);
+    type = DAY_CHOGHADIYA_TABLE[dayOfWeek][slotIndex];
+  } else if (target >= sunset) {
+    isDaytime = false;
+    const nextDayTimes = getDayTimes(new Date(dayTimes.sunrise.getTime() + 24 * 3600000), location);
+    const nextSunrise = nextDayTimes.sunrise.getTime();
+    const slotLen = (nextSunrise - sunset) / 8;
+    slotIndex = Math.min(7, Math.max(0, Math.floor((target - sunset) / slotLen)));
+    slotStart = new Date(sunset + slotIndex * slotLen);
+    slotEnd = new Date(sunset + (slotIndex + 1) * slotLen);
+    type = NIGHT_CHOGHADIYA_TABLE[dayOfWeek][slotIndex];
+  } else {
+    isDaytime = false;
+    const prevDayTimes = getDayTimes(new Date(dayTimes.sunrise.getTime() - 24 * 3600000), location);
+    const prevSunset = prevDayTimes.sunset.getTime();
+    const prevVara = (dayOfWeek + 6) % 7;
+    const slotLen = (sunrise - prevSunset) / 8;
+    slotIndex = Math.min(7, Math.max(0, Math.floor((target - prevSunset) / slotLen)));
+    slotStart = new Date(prevSunset + slotIndex * slotLen);
+    slotEnd = new Date(prevSunset + (slotIndex + 1) * slotLen);
+    type = NIGHT_CHOGHADIYA_TABLE[prevVara][slotIndex];
+  }
+
+  const def = CHOGHADIYA_DEFINITIONS[type];
+  const remainingMinutes = Math.max(0, Math.round((slotEnd.getTime() - target) / 60000));
+
+  return {
+    slot: {
+      index: slotIndex,
+      type,
+      sanskrit: def.sanskrit,
+      transliterated: def.transliterated,
+      english: def.english,
+      ruler: def.ruler,
+      quality: def.quality,
+      meaning: def.meaning,
+      start: slotStart,
+      end: slotEnd,
+      isDaytime
+    },
+    timeRemainingMinutes: remainingMinutes
+  };
+}
+
+/**
+ * Calculates complete Real-Time Panchangam for the exact instant (now).
+ */
+export function calculateRealTimePanchangam(
+  targetDate: Date = new Date(),
+  location: ObserverLocation,
+  ayanamshaType: AyanamshaType = AyanamshaType.LAHIRI,
+  calendarSystem: CalendarSystemType = CalendarSystemType.CHANDRAMANA_AMANTA
+): RealTimePanchangam {
+  const aya = getAyanamsha(targetDate, ayanamshaType);
+  const observer = new Astronomy.Observer(location.latitude, location.longitude, location.elevationMeters || 10);
+  const targetTime = Astronomy.MakeTime(targetDate);
+
+  // 1. Foundational Day Times for this location
+  const dayTimes = getDayTimes(targetDate, location);
+
+  // 2. Daily foundational Panchangam (evaluated at Sunrise)
+  const dayPanchangam = calculateDailyPanchangam(targetDate, location, ayanamshaType, calendarSystem);
+
+  // 3. Real-Time Angas (evaluated at current targetDate instant)
+  const liveAngasRaw = calculateFiveAngas(targetDate, location, dayTimes, ayanamshaType);
+  const tithiStartTime = findTithiStart(targetDate);
+  const nakshatraStartTime = findNakshatraStart(targetDate, ayanamshaType);
+
+  const nowMs = targetDate.getTime();
+  const tithiEndMs = liveAngasRaw.tithi.endTime.getTime();
+  const tithiRemainingMs = Math.max(0, tithiEndMs - nowMs);
+
+  const nakEndMs = liveAngasRaw.nakshatra.endTime.getTime();
+  const nakRemainingMs = Math.max(0, nakEndMs - nowMs);
+
+  const yogaEndMs = liveAngasRaw.yoga.endTime.getTime();
+  const yogaRemainingMs = Math.max(0, yogaEndMs - nowMs);
+
+  const karanaEndMs = liveAngasRaw.karana.endTime.getTime();
+  const karanaRemainingMs = Math.max(0, karanaEndMs - nowMs);
+
+  // Moon Rashi & Degree right now
+  const { siderealMoon, siderealSun } = getSunMoonLongitudes(targetDate, aya, observer);
+  const moonRashiIdx = Math.floor(siderealMoon / 30) % 12;
+  const moonDegInRashi = siderealMoon % 30;
+
+  // Inauspicious Yogas list
+  const inauspiciousYogas = [0, 5, 8, 9, 12, 14, 16, 18, 26];
+  const yogaQuality: AuspiciousnessType = inauspiciousYogas.includes(liveAngasRaw.yoga.index)
+    ? 'Inauspicious'
+    : 'Auspicious';
+
+  // Vishti / Bhadra check
+  const isVishtiBhadra = liveAngasRaw.karana.name === 'Vishti';
+
+  const currentAngas: RealTimeAngas = {
+    tithi: {
+      ...liveAngasRaw.tithi,
+      startTime: tithiStartTime,
+      remainingMs: tithiRemainingMs
+    },
+    vara: liveAngasRaw.vara,
+    nakshatra: {
+      ...liveAngasRaw.nakshatra,
+      startTime: nakshatraStartTime,
+      remainingMs: nakRemainingMs,
+      degreesInNakshatra: Number((siderealMoon % (360 / 27)).toFixed(2)),
+      moonRashi: RASHIS[moonRashiIdx].sanskrit,
+      moonDegreeInRashi: Number(moonDegInRashi.toFixed(2))
+    },
+    yoga: {
+      ...liveAngasRaw.yoga,
+      remainingMs: yogaRemainingMs,
+      quality: yogaQuality
+    },
+    karana: {
+      ...liveAngasRaw.karana,
+      remainingMs: karanaRemainingMs,
+      isVishtiBhadra
+    }
+  };
+
+  // 4. Real-Time Udaya Lagna (Ascendant)
+  const lagna = calculateLagna(targetDate, location, aya);
+
+  // 5. Real-Time Hora & Choghadiya
+  const currentHora = calculateHora(targetDate, dayTimes, location);
+  const currentChoghadiya = calculateChoghadiya(targetDate, dayTimes, location);
+
+  // 6. Active Periods & Alerts
+  const divs = dayPanchangam.divisions;
+  const rahuStart = divs.rahuKalam.start.getTime();
+  const rahuEnd = divs.rahuKalam.end.getTime();
+  const isRahuKalam = nowMs >= rahuStart && nowMs <= rahuEnd;
+  const rahuKalamRemainingMs = isRahuKalam ? rahuEnd - nowMs : null;
+  const nextRahuKalamStart = nowMs < rahuStart ? divs.rahuKalam.start : null;
+
+  const yamaStart = divs.yamagandam.start.getTime();
+  const yamaEnd = divs.yamagandam.end.getTime();
+  const isYamagandam = nowMs >= yamaStart && nowMs <= yamaEnd;
+  const yamagandamRemainingMs = isYamagandam ? yamaEnd - nowMs : null;
+
+  const gulikaStart = divs.gulikaKalam.start.getTime();
+  const gulikaEnd = divs.gulikaKalam.end.getTime();
+  const isGulikaKalam = nowMs >= gulikaStart && nowMs <= gulikaEnd;
+  const gulikaRemainingMs = isGulikaKalam ? gulikaEnd - nowMs : null;
+
+  let isAbhijit = false;
+  let abhijitRemainingMs: number | null = null;
+  if (divs.abhijit) {
+    const abStart = divs.abhijit.start.getTime();
+    const abEnd = divs.abhijit.end.getTime();
+    isAbhijit = nowMs >= abStart && nowMs <= abEnd;
+    abhijitRemainingMs = isAbhijit ? abEnd - nowMs : null;
+  }
+
+  const isAparahnaPitru = nowMs >= divs.aparahna.start.getTime() && nowMs < divs.aparahna.end.getTime();
+
+  let activeKala = 'Ratri';
+  if (nowMs >= divs.pratah.start.getTime() && nowMs < divs.pratah.end.getTime()) activeKala = 'Pratah';
+  else if (nowMs >= divs.sangava.start.getTime() && nowMs < divs.sangava.end.getTime()) activeKala = 'Sangava';
+  else if (nowMs >= divs.madhyahna.start.getTime() && nowMs < divs.madhyahna.end.getTime()) activeKala = 'Madhyahna';
+  else if (nowMs >= divs.aparahna.start.getTime() && nowMs < divs.aparahna.end.getTime()) activeKala = 'Aparahna';
+  else if (nowMs >= divs.sayahna.start.getTime() && nowMs < divs.sayahna.end.getTime()) activeKala = 'Sayahna';
+
+  const activePeriods: RealTimeActivePeriods = {
+    activeKala,
+    isRahuKalam,
+    rahuKalamRemainingMs,
+    nextRahuKalamStart,
+    isYamagandam,
+    yamagandamRemainingMs,
+    isGulikaKalam,
+    gulikaRemainingMs,
+    isAbhijit,
+    abhijitRemainingMs,
+    isAparahnaPitru
+  };
+
+  // 7. Sun & Moon Horizon / Altitude / Illumination
+  const sunEq = Astronomy.Equator(Astronomy.Body.Sun, targetTime, observer, true, true);
+  const sunHoriz = Astronomy.Horizon(targetTime, observer, sunEq.ra, sunEq.dec, 'normal');
+  const moonPhaseAngle = Astronomy.MoonPhase(targetTime); // Phase in degrees 0-360
+  const moonIllum = Astronomy.Illumination(Astronomy.Body.Moon, targetTime);
+
+  let moonPhaseName = 'Waxing Gibbous';
+  if (moonPhaseAngle < 22.5 || moonPhaseAngle >= 337.5) moonPhaseName = 'New Moon (Amavasya)';
+  else if (moonPhaseAngle < 67.5) moonPhaseName = 'Waxing Crescent';
+  else if (moonPhaseAngle < 112.5) moonPhaseName = 'First Quarter';
+  else if (moonPhaseAngle < 157.5) moonPhaseName = 'Waxing Gibbous';
+  else if (moonPhaseAngle < 202.5) moonPhaseName = 'Full Moon (Purnima)';
+  else if (moonPhaseAngle < 247.5) moonPhaseName = 'Waning Gibbous';
+  else if (moonPhaseAngle < 292.5) moonPhaseName = 'Third Quarter';
+  else moonPhaseName = 'Waning Crescent';
+
+  const localTimeFormatted = targetDate.toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    timeZone: location.timezone
+  });
+
+  return {
+    timestamp: targetDate.toISOString(),
+    localTimeFormatted,
+    location,
+    ayanamsha: {
+      type: ayanamshaType,
+      value: Number(aya.toFixed(4)),
+      formatted: formatDegrees(aya)
+    },
+    currentAngas,
+    lagna,
+    currentHora,
+    currentChoghadiya,
+    activePeriods,
+    sunMoon: {
+      sunLongitude: Number(siderealSun.toFixed(2)),
+      moonLongitude: Number(siderealMoon.toFixed(2)),
+      sunAltitude: Number(sunHoriz.altitude.toFixed(2)),
+      isDaylight: sunHoriz.altitude > -0.833,
+      moonIlluminationPct: Math.round(moonIllum.phase_fraction * 100),
+      moonPhaseName
+    },
+    dayPanchangam
+  };
+}
+

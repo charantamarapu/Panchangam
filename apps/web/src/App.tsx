@@ -3,6 +3,7 @@ import { api, UserSession } from './services/api';
 import { Header } from './components/Header';
 import { LocationPicker, LocationState } from './components/LocationPicker';
 import { TodayHero } from './components/TodayHero';
+import { RealTimeCard } from './components/RealTimeCard';
 import { FiveAngasCard } from './components/FiveAngasCard';
 import { SolarLunarBar } from './components/SolarLunarBar';
 import { MuhurthaTimetable } from './components/MuhurthaTimetable';
@@ -131,50 +132,63 @@ export const App: React.FC = () => {
 
         {activeTab === 'panchangam' ? (
           <div>
-            {/* 🌟 TODAY'S HERO SECTION: Front & Center at the very top */}
-            {panchangamData && (
-              <TodayHero
-                panchangam={panchangamData}
-                selectedDate={selectedDate}
-                onChangeDate={d => setSelectedDate(d)}
-                selectedMutt={selectedMutt}
-                onOpenMuttSettings={() => setIsMuttSettingsOpen(true)}
+            {/* 🌟 DUAL HERO SECTION: Today's Panchangam & Real-Time Live Panchangam Side by Side */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(460px, 1fr))',
+              gap: 20,
+              alignItems: 'stretch',
+              marginBottom: 20
+            }}>
+              {panchangamData ? (
+                <TodayHero
+                  panchangam={panchangamData}
+                  selectedDate={selectedDate}
+                  onChangeDate={d => setSelectedDate(d)}
+                  selectedMutt={selectedMutt}
+                  onOpenMuttSettings={() => setIsMuttSettingsOpen(true)}
+                  languageMode={languageMode}
+                />
+              ) : (
+                <div className="vedic-card" style={{ textAlign: 'center', padding: '40px 0', minHeight: 350, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ fontSize: '1.8rem', color: 'var(--gold-400)' }}>🕉️</div>
+                  <div style={{ color: 'var(--text-secondary)', marginTop: 8 }}>
+                    Computing high-precision Drigganita ephemeris for {location.name}...
+                  </div>
+                </div>
+              )}
+
+              <RealTimeCard
+                location={location}
+                ayanamsha={ayanamsha}
+                calendarSystem={calendarSystem}
                 languageMode={languageMode}
               />
-            )}
+            </div>
 
-            {loading && !panchangamData ? (
-              <div className="vedic-card" style={{ textAlign: 'center', padding: '40px 0' }}>
-                <div style={{ fontSize: '1.8rem', color: 'var(--gold-400)' }}>🕉️</div>
-                <div style={{ color: 'var(--text-secondary)', marginTop: 8 }}>
-                  Computing high-precision Drigganita ephemeris for {location.name}...
-                </div>
+            {panchangamData && (
+              <div>
+                {/* Solar & Lunar Calendar Markers (Samvatsara, Ayana, Ritu, Masas) */}
+                <SolarLunarBar
+                  info={panchangamData.solarLunarInfo}
+                  calendarSystem={calendarSystem}
+                  onChangeCalendarSystem={sys => {
+                    setCalendarSystem(sys);
+                    localStorage.setItem('panchangam_calendar_system', sys);
+                  }}
+                  languageMode={languageMode}
+                />
+
+                {/* The 5 Angas Breakdown Cards */}
+                <FiveAngasCard angas={panchangamData.angas} languageMode={languageMode} />
+
+                {/* Day Divisions, Muhurthas, and Planetary Positions */}
+                <MuhurthaTimetable
+                  timings={panchangamData.timings}
+                  divisions={panchangamData.divisions}
+                  planets={panchangamData.planets}
+                />
               </div>
-            ) : (
-              panchangamData && (
-                <div>
-                  {/* Solar & Lunar Calendar Markers (Samvatsara, Ayana, Ritu, Masas) */}
-                  <SolarLunarBar
-                    info={panchangamData.solarLunarInfo}
-                    calendarSystem={calendarSystem}
-                    onChangeCalendarSystem={sys => {
-                      setCalendarSystem(sys);
-                      localStorage.setItem('panchangam_calendar_system', sys);
-                    }}
-                    languageMode={languageMode}
-                  />
-
-                  {/* The 5 Angas Breakdown Cards */}
-                  <FiveAngasCard angas={panchangamData.angas} languageMode={languageMode} />
-
-                  {/* Day Divisions, Muhurthas, and Planetary Positions */}
-                  <MuhurthaTimetable
-                    timings={panchangamData.timings}
-                    divisions={panchangamData.divisions}
-                    planets={panchangamData.planets}
-                  />
-                </div>
-              )
             )}
           </div>
         ) : (

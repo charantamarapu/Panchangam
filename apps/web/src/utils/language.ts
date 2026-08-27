@@ -12,12 +12,18 @@ import {
   LOCALIZED_LUNAR_MASAS,
   LOCALIZED_DAY_DIVISIONS,
   LOCALIZED_PLANETS,
+  LOCALIZED_CHOGHADIYAS,
   getLocalizedText,
   getLocalizedTithi,
-  formatSamvatsara
+  formatSamvatsara,
+  formatChoghadiya as engineFormatChoghadiya,
+  formatHora as engineFormatHora
 } from '@panchangam/engine';
 
 export { LanguageMode, formatSamvatsara };
+export const formatChoghadiya = engineFormatChoghadiya;
+export const formatHora = engineFormatHora;
+
 
 export function formatTithi(paksha: 'Shukla' | 'Krishna', numberInPaksha: number, mode: LanguageMode): string {
   return getLocalizedTithi(paksha, numberInPaksha, mode);

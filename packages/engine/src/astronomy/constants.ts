@@ -167,3 +167,63 @@ export const RITU_NAMES = [
   { index: 4, sanskrit: 'हेमन्त (Hemanta)', english: 'Pre-Winter' },
   { index: 5, sanskrit: 'शिशिर (Shishira)', english: 'Winter' },
 ];
+
+export type ChoghadiyaType = 'Amrit' | 'Shubh' | 'Labh' | 'Char' | 'Rog' | 'Kaal' | 'Udveg';
+export type AuspiciousnessType = 'Auspicious' | 'Neutral' | 'Inauspicious';
+
+export interface ChoghadiyaDefinition {
+  name: ChoghadiyaType;
+  sanskrit: string;
+  transliterated: string;
+  english: string;
+  ruler: string;
+  quality: AuspiciousnessType;
+  meaning: string;
+}
+
+export const CHOGHADIYA_DEFINITIONS: Record<ChoghadiyaType, ChoghadiyaDefinition> = {
+  Amrit: { name: 'Amrit', sanskrit: 'अमृत', transliterated: 'Amṛta', english: 'Nectar (Best)', ruler: 'Chandra (Moon)', quality: 'Auspicious', meaning: 'Highly auspicious for all spiritual, monetary and domestic deeds' },
+  Shubh: { name: 'Shubh', sanskrit: 'शुभ', transliterated: 'Śubha', english: 'Auspicious', ruler: 'Guru (Jupiter)', quality: 'Auspicious', meaning: 'Excellent for weddings, ceremonies, prayers and sacred works' },
+  Labh: { name: 'Labh', sanskrit: 'लाभ', transliterated: 'Lābha', english: 'Gain / Profit', ruler: 'Budha (Mercury)', quality: 'Auspicious', meaning: 'Highly favorable for business, education, investments and trade' },
+  Char: { name: 'Char', sanskrit: 'चर', transliterated: 'Cara', english: 'Movable / Neutral', ruler: 'Shukra (Venus)', quality: 'Neutral', meaning: 'Favorable for journeys, vehicles, transit and dynamic activities' },
+  Rog: { name: 'Rog', sanskrit: 'रोग', transliterated: 'Roga', english: 'Disease / Evil', ruler: 'Mangala (Mars)', quality: 'Inauspicious', meaning: 'Avoid auspicious beginnings; causes friction or hurdles' },
+  Kaal: { name: 'Kaal', sanskrit: 'काल', transliterated: 'Kāla', english: 'Loss / Time', ruler: 'Shani (Saturn)', quality: 'Inauspicious', meaning: 'Inauspicious for ventures, brings delays and loss of wealth' },
+  Udveg: { name: 'Udveg', sanskrit: 'उद्वेग', transliterated: 'Udvega', english: 'Anxiety / Distress', ruler: 'Surya (Sun)', quality: 'Inauspicious', meaning: 'Creates worry and unrest; strictly avoid major celebrations' }
+};
+
+// Daytime 8 Choghadiyas for each weekday (0 = Sunday to 6 = Saturday)
+export const DAY_CHOGHADIYA_TABLE: ChoghadiyaType[][] = [
+  ['Udveg', 'Char', 'Labh', 'Amrit', 'Kaal', 'Shubh', 'Rog', 'Udveg'], // Sun
+  ['Amrit', 'Kaal', 'Shubh', 'Rog', 'Udveg', 'Char', 'Labh', 'Amrit'], // Mon
+  ['Rog', 'Udveg', 'Char', 'Labh', 'Amrit', 'Kaal', 'Shubh', 'Rog'],   // Tue
+  ['Labh', 'Amrit', 'Kaal', 'Shubh', 'Rog', 'Udveg', 'Char', 'Labh'], // Wed
+  ['Shubh', 'Rog', 'Udveg', 'Char', 'Labh', 'Amrit', 'Kaal', 'Shubh'], // Thu
+  ['Char', 'Labh', 'Amrit', 'Kaal', 'Shubh', 'Rog', 'Udveg', 'Char'],   // Fri
+  ['Kaal', 'Shubh', 'Rog', 'Udveg', 'Char', 'Labh', 'Amrit', 'Kaal']   // Sat
+];
+
+// Nighttime 8 Choghadiyas for each weekday (0 = Sunday to 6 = Saturday)
+export const NIGHT_CHOGHADIYA_TABLE: ChoghadiyaType[][] = [
+  ['Shubh', 'Amrit', 'Char', 'Rog', 'Kaal', 'Labh', 'Udveg', 'Shubh'], // Sun
+  ['Char', 'Rog', 'Kaal', 'Labh', 'Udveg', 'Shubh', 'Amrit', 'Char'],   // Mon
+  ['Kaal', 'Labh', 'Udveg', 'Shubh', 'Amrit', 'Char', 'Rog', 'Kaal'],   // Tue
+  ['Udveg', 'Shubh', 'Amrit', 'Char', 'Rog', 'Kaal', 'Labh', 'Udveg'], // Wed
+  ['Amrit', 'Char', 'Rog', 'Kaal', 'Labh', 'Udveg', 'Shubh', 'Amrit'], // Thu
+  ['Rog', 'Kaal', 'Labh', 'Udveg', 'Shubh', 'Amrit', 'Char', 'Rog'],   // Fri
+  ['Labh', 'Udveg', 'Shubh', 'Amrit', 'Char', 'Rog', 'Kaal', 'Labh']   // Sat
+];
+
+export const CHALDEAN_HORA_ORDER = [
+  'Surya', 'Shukra', 'Budha', 'Chandra', 'Shani', 'Guru', 'Mangala'
+];
+
+export const WEEKDAY_FIRST_HORA_INDEX = [
+  0, // Sun -> Surya (0)
+  3, // Mon -> Chandra (3)
+  6, // Tue -> Mangala (6)
+  2, // Wed -> Budha (2)
+  5, // Thu -> Guru (5)
+  1, // Fri -> Shukra (1)
+  4  // Sat -> Shani (4)
+];
+

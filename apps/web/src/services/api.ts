@@ -137,6 +137,30 @@ class ApiService {
     return this.request<any>(`/panchangam?${query.toString()}`);
   }
 
+  public async getRealTimePanchangam(params: {
+    timestamp?: string;
+    latitude: number;
+    longitude: number;
+    elevation?: number;
+    timezone: string;
+    ayanamsha?: string;
+    mutt?: string;
+    calendarSystem?: string;
+  }) {
+    const query = new URLSearchParams({
+      timestamp: params.timestamp || '',
+      latitude: params.latitude.toString(),
+      longitude: params.longitude.toString(),
+      elevation: (params.elevation !== undefined ? params.elevation : 0).toString(),
+      timezone: params.timezone,
+      ayanamsha: params.ayanamsha || 'LAHIRI',
+      mutt: params.mutt || 'STANDARD',
+      calendarSystem: params.calendarSystem || 'CHANDRAMANA_AMANTA'
+    });
+    return this.request<any>(`/panchangam/realtime?${query.toString()}`);
+  }
+
+
   public async getMonthlyCalendar(params: {
     year: number;
     month: number;

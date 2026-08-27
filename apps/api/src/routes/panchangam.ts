@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import {
   calculateDailyPanchangam,
+  calculateRealTimePanchangam,
   evaluateMuttObservances,
   SampradayaType,
   AyanamshaType,
@@ -62,6 +63,61 @@ export async function panchangamRoutes(server: FastifyInstance) {
       muttObservance: observance
     });
   });
+
+  // 1.5 Real-Time Panchangam (Live Now)
+  server.get('/realtime', {
+    schema: {
+      tags: ['Panchangam Core'],
+      summary: 'Get live real-time Panchangam with active Tithi, Nakshatra Pada, Lagna, Hora & Choghadiya',
+      querystring: {
+        type: 'object',
+        properties: {
+          timestamp: { type: 'string', description: 'ISO timestamp (defaults to current instant)' },
+          latitude: { type: 'number', default: 13.0827 },
+          longitude: { type: 'number', default: 80.2707 },
+          elevation: { type: 'number', default: 10 },
+          timezone: { type: 'string', default: 'Asia/Kolkata' },
+          ayanamsha: { type: 'string', enum: ['LAHIRI', 'KP', 'RAMAN'], default: 'LAHIRI' },
+          mutt: { type: 'string', default: 'STANDARD' },
+          calendarSystem: { type: 'string', default: 'CHANDRAMANA_AMANTA', enum: ['SOURAMANA', 'CHANDRAMANA_AMANTA', 'CHANDRAMANA_PURNIMANTA'] }
+        }
+      }
+    }
+  }, async (request: FastifyRequest<{
+    Querystring: {
+      timestamp?: string;
+      latitude?: number;
+      longitude?: number;
+      elevation?: number;
+      timezone?: string;
+      ayanamsha?: string;
+      mutt?: string;
+      calendarSystem?: string;
+    }
+  }>, reply: FastifyReply) => {
+    const q = request.query;
+    const targetDate = q.timestamp ? new Date(q.timestamp) : new Date();
+
+    const location: ObserverLocation = {
+      latitude: q.latitude ?? 13.0827,
+      longitude: q.longitude ?? 80.2707,
+      elevationMeters: q.elevation ?? 10,
+      timezone: q.timezone || 'Asia/Kolkata'
+    };
+
+    const ayanamshaType = (q.ayanamsha as AyanamshaType) || AyanamshaType.LAHIRI;
+    const calendarSystem = (q.calendarSystem as CalendarSystemType) || CalendarSystemType.CHANDRAMANA_AMANTA;
+    const realTimeData = calculateRealTimePanchangam(targetDate, location, ayanamshaType, calendarSystem);
+
+    const muttId = (q.mutt as SampradayaType) || SampradayaType.STANDARD;
+    const observance = evaluateMuttObservances(realTimeData.dayPanchangam, muttId);
+
+    return reply.send({
+      ...realTimeData,
+      muttObservance: observance
+    });
+  });
+
 
   // 2. Monthly Calendar
   server.get('/calendar', {

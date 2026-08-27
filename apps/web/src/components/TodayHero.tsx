@@ -125,65 +125,58 @@ export const TodayHero: React.FC<TodayHeroProps> = ({
 
   return (
     <div className="vedic-card" style={{
-      marginBottom: 20,
+      marginBottom: 0,
       padding: '20px 24px',
       background: 'linear-gradient(145deg, rgba(17, 24, 39, 0.95), rgba(27, 38, 59, 0.85))',
       border: '1px solid rgba(245, 158, 11, 0.35)',
-      boxShadow: '0 10px 35px -10px rgba(0, 0, 0, 0.6), 0 0 20px rgba(245, 158, 11, 0.1)'
+      boxShadow: '0 10px 35px -10px rgba(0, 0, 0, 0.6), 0 0 20px rgba(245, 158, 11, 0.1)',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'space-between'
     }}>
-      {/* Top Bar: Date Navigator & Tradition Indicator */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: 12,
-        borderBottom: '1px solid var(--border-subtle)',
-        paddingBottom: 14,
-        marginBottom: 16
-      }}>
-        {/* Date Navigator Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <button
-            onClick={() => handleShiftDay(-1)}
-            className="btn-vedic btn-vedic-outline"
-            style={{ padding: '5px 9px', fontSize: '0.78rem' }}
-            title="Previous Day"
-          >
-            <ChevronLeft size={15} /> Prev
-          </button>
-
-          <button
-            onClick={handleSetToday}
-            className="btn-vedic btn-vedic-subtle"
-            style={{ padding: '5px 10px', fontSize: '0.78rem' }}
-          >
-            <RotateCcw size={13} /> Today
-          </button>
-
-          <button
-            onClick={() => handleShiftDay(1)}
-            className="btn-vedic btn-vedic-outline"
-            style={{ padding: '5px 9px', fontSize: '0.78rem' }}
-            title="Next Day"
-          >
-            Next <ChevronRight size={15} />
-          </button>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 6 }}>
-            <Calendar size={15} color="var(--gold-400)" />
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={e => onChangeDate(e.target.value)}
-              className="vedic-input"
-              style={{ padding: '4px 8px', fontSize: '0.82rem', width: 145 }}
-            />
+      <div>
+        {/* Card Header: Title & Tradition */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 10,
+          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+          paddingBottom: 12,
+          marginBottom: 14
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: '1.1rem' }}>☀️</span>
+            <div>
+              <div style={{
+                fontSize: '0.9rem',
+                fontWeight: 700,
+                color: 'var(--gold-400)',
+                letterSpacing: '0.05em',
+                textTransform: 'uppercase',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6
+              }}>
+                <span>
+                  {languageMode === LanguageMode.SANSKRIT_DEVANAGARI
+                    ? 'दैनिक पञ्चाङ्गम्'
+                    : languageMode === LanguageMode.SANSKRIT_TRANSLITERATED
+                    ? 'Dainika Pañcāṅgam'
+                    : "Today's Panchangam"}
+                </span>
+                <span className="vedic-badge badge-gold" style={{ padding: '2px 8px', fontSize: '0.68rem' }}>
+                  SUNRISE DINA
+                </span>
+              </div>
+              <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                Sankalpa & religious day evaluated at local sunrise
+              </div>
+            </div>
           </div>
-        </div>
 
-        {/* Current Active Tradition Button */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {/* Current Active Tradition Button */}
           <button
             onClick={onOpenMuttSettings}
             className="btn-vedic"
@@ -191,15 +184,63 @@ export const TodayHero: React.FC<TodayHeroProps> = ({
               backgroundColor: selectedMutt === 'STANDARD' ? 'rgba(255, 255, 255, 0.06)' : 'rgba(245, 158, 11, 0.15)',
               border: selectedMutt === 'STANDARD' ? '1px solid var(--border-subtle)' : '1px solid var(--gold-400)',
               color: selectedMutt === 'STANDARD' ? 'var(--text-secondary)' : 'var(--gold-300)',
-              padding: '6px 12px',
-              fontSize: '0.78rem'
+              padding: '4px 10px',
+              fontSize: '0.74rem'
             }}
+            title="Configure Tradition / Mutt Nirnaya"
           >
-            <Compass size={14} />
-            Tradition: <strong>{muttObservance?.muttName || 'Standard Drigganita'}</strong> (Click to change)
+            <Compass size={13} />
+            Tradition: <strong>{muttObservance?.muttName || 'Standard Drigganita'}</strong>
           </button>
         </div>
+
+        {/* Date Navigator Controls */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          marginBottom: 16,
+          flexWrap: 'wrap'
+        }}>
+          <button
+            onClick={() => handleShiftDay(-1)}
+            className="btn-vedic btn-vedic-outline"
+            style={{ padding: '4px 8px', fontSize: '0.76rem' }}
+            title="Previous Day"
+          >
+            <ChevronLeft size={14} /> Prev
+          </button>
+
+          <button
+            onClick={handleSetToday}
+            className="btn-vedic btn-vedic-subtle"
+            style={{ padding: '4px 9px', fontSize: '0.76rem' }}
+          >
+            <RotateCcw size={12} /> Today
+          </button>
+
+          <button
+            onClick={() => handleShiftDay(1)}
+            className="btn-vedic btn-vedic-outline"
+            style={{ padding: '4px 8px', fontSize: '0.76rem' }}
+            title="Next Day"
+          >
+            Next <ChevronRight size={14} />
+          </button>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 4 }}>
+            <Calendar size={14} color="var(--gold-400)" />
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={e => onChangeDate(e.target.value)}
+              className="vedic-input"
+              style={{ padding: '3px 8px', fontSize: '0.8rem', width: 140 }}
+            />
+          </div>
+        </div>
       </div>
+
 
       {/* Main Hero Grid: High-Impact Daily Essentials */}
       <div style={{
