@@ -7,7 +7,7 @@
     "apps/*"
   ],
   "scripts": {
-    "build": "npm run build --workspaces",
+    "build": "npm run build --workspace=@panchangam/engine && npm run build --workspace=@panchangam/api && npm run build --workspace=@panchangam/web",
     "test": "npm run test --workspaces",
     "dev:api": "npm run dev --workspace=apps/api",
     "dev:web": "npm run dev --workspace=apps/web",
