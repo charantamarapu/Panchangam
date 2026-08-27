@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MapPin, Search, Navigation, Globe, ChevronDown, Check } from 'lucide-react';
+import { MapPin, Search, Navigation, Globe, X, GripHorizontal } from 'lucide-react';
 import { api } from '../services/api';
 import L from 'leaflet';
 
@@ -35,10 +35,38 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({ location, onChan
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [mapHeight, setMapHeight] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('panchangam_map_height');
+      return saved ? Math.max(180, Math.min(750, Number(saved))) : 320;
+    } catch {
+      return 320;
+    }
+  });
+  const [isResizing, setIsResizing] = useState(false);
 
+  const searchContainerRef = useRef<HTMLDivElement | null>(null);
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
+  const isDraggingRef = useRef(false);
+  const startYRef = useRef(0);
+  const startHeightRef = useRef(320);
+
+  // Close search dropdown on outside click
+  useEffect(() => {
+    const handlePointerDown = (e: MouseEvent | TouchEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('touchstart', handlePointerDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('touchstart', handlePointerDown);
+    };
+  }, []);
 
   // Search autocomplete
   useEffect(() => {
@@ -100,13 +128,113 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({ location, onChan
 
       mapInstanceRef.current = map;
       markerRef.current = marker;
+      setTimeout(() => {
+        map.invalidateSize();
+      }, 100);
     } else {
       mapInstanceRef.current.setView([location.latitude, location.longitude], 6);
       if (markerRef.current) {
         markerRef.current.setLatLng([location.latitude, location.longitude]);
       }
+      setTimeout(() => {
+        mapInstanceRef.current?.invalidateSize();
+      }, 50);
     }
   }, [showMap, location.latitude, location.longitude]);
+
+  // Clean up Leaflet on unmount
+  useEffect(() => {
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+        markerRef.current = null;
+      }
+    };
+  }, []);
+
+  // Invalidate map size whenever map height changes or map is toggled
+  useEffect(() => {
+    if (mapInstanceRef.current && showMap) {
+      const timer = setTimeout(() => {
+        mapInstanceRef.current?.invalidateSize();
+      }, 30);
+      return () => clearTimeout(timer);
+    }
+  }, [mapHeight, showMap]);
+
+  // ResizeObserver for any container size change
+  useEffect(() => {
+    if (!mapContainerRef.current) return;
+    const observer = new ResizeObserver(() => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize();
+      }
+    });
+    observer.observe(mapContainerRef.current);
+    return () => observer.disconnect();
+  }, [showMap]);
+
+  // Drag resizing logic
+  const handleDragStart = (clientY: number) => {
+    isDraggingRef.current = true;
+    setIsResizing(true);
+    startYRef.current = clientY;
+    startHeightRef.current = mapHeight;
+
+    const onMouseMove = (e: MouseEvent) => {
+      if (!isDraggingRef.current) return;
+      const deltaY = e.clientY - startYRef.current;
+      const nextHeight = Math.min(Math.max(startHeightRef.current + deltaY, 180), 750);
+      setMapHeight(nextHeight);
+      try {
+        localStorage.setItem('panchangam_map_height', String(nextHeight));
+      } catch {}
+    };
+
+    const onMouseUp = () => {
+      isDraggingRef.current = false;
+      setIsResizing(false);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize();
+      }
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  };
+
+  const handleTouchDragStart = (clientY: number) => {
+    isDraggingRef.current = true;
+    setIsResizing(true);
+    startYRef.current = clientY;
+    startHeightRef.current = mapHeight;
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (!isDraggingRef.current || !e.touches[0]) return;
+      const deltaY = e.touches[0].clientY - startYRef.current;
+      const nextHeight = Math.min(Math.max(startHeightRef.current + deltaY, 180), 750);
+      setMapHeight(nextHeight);
+      try {
+        localStorage.setItem('panchangam_map_height', String(nextHeight));
+      } catch {}
+    };
+
+    const onTouchEnd = () => {
+      isDraggingRef.current = false;
+      setIsResizing(false);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', onTouchEnd);
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize();
+      }
+    };
+
+    window.addEventListener('touchmove', onTouchMove);
+    window.addEventListener('touchend', onTouchEnd);
+  };
 
   // GPS Auto-detect
   const handleDetectGPS = () => {
@@ -140,11 +268,19 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({ location, onChan
       timezone: c.timezone
     });
     setSearchQuery('');
+    setSuggestions([]);
     setShowDropdown(false);
   };
 
   return (
-    <div className="vedic-card" style={{ marginBottom: 20 }}>
+    <div
+      className="vedic-card"
+      style={{
+        marginBottom: 20,
+        position: 'relative',
+        zIndex: showDropdown ? 1000 : 20
+      }}
+    >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <MapPin size={20} color="var(--gold-400)" />
@@ -177,68 +313,108 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({ location, onChan
         </div>
       </div>
 
-      {/* Search Input & Dropdown */}
-      <div style={{ position: 'relative', marginBottom: 12 }}>
+      {/* Search Input & High-z-index Dropdown */}
+      <div ref={searchContainerRef} style={{ position: 'relative', marginBottom: 12, zIndex: 1050 }}>
         <div style={{ position: 'relative' }}>
           <Search size={16} color="var(--text-muted)" style={{ position: 'absolute', left: 12, top: 12 }} />
           <input
             type="text"
             placeholder="Search any world city, temple town, or mutt location..."
             value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
+            onChange={e => {
+              setSearchQuery(e.target.value);
+              setShowDropdown(true);
+            }}
             onFocus={() => setShowDropdown(true)}
+            onKeyDown={e => {
+              if (e.key === 'Escape') setShowDropdown(false);
+            }}
             className="vedic-input"
-            style={{ paddingLeft: 38 }}
+            style={{ paddingLeft: 38, paddingRight: searchQuery ? 38 : 12 }}
           />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchQuery('');
+                setSuggestions([]);
+                setShowDropdown(false);
+              }}
+              style={{
+                position: 'absolute',
+                right: 12,
+                top: 10,
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                padding: 2,
+                display: 'flex',
+                alignItems: 'center'
+              }}
+              title="Clear search"
+            >
+              <X size={14} />
+            </button>
+          )}
           {isSearching && (
-            <span style={{ position: 'absolute', right: 12, top: 10, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+            <span style={{ position: 'absolute', right: searchQuery ? 36 : 12, top: 10, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
               Searching...
             </span>
           )}
         </div>
 
-        {showDropdown && suggestions.length > 0 && (
-          <div style={{
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            right: 0,
-            backgroundColor: '#111827',
-            border: '1px solid var(--border-gold)',
-            borderRadius: 8,
-            marginTop: 4,
-            zIndex: 50,
-            maxHeight: 220,
-            overflowY: 'auto',
-            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.7)'
-          }}>
-            {suggestions.map((s, idx) => (
-              <div
-                key={idx}
-                onClick={() => handleSelectCity(s)}
-                style={{
-                  padding: '10px 14px',
-                  cursor: 'pointer',
-                  borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-                  fontSize: '0.84rem',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}
-                onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(245, 158, 11, 0.12)')}
-                onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
-              >
-                <div>
-                  <strong style={{ color: 'var(--gold-300)' }}>{s.name}</strong>
-                  <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginLeft: 6 }}>
-                    ({s.state ? `${s.state}, ` : ''}{s.country})
+        {/* Floating City Dropdown with high stacking index */}
+        {showDropdown && searchQuery.trim().length > 0 && (
+          <div
+            style={{
+              position: 'absolute',
+              top: 'calc(100% + 4px)',
+              left: 0,
+              right: 0,
+              backgroundColor: '#0f172a',
+              border: '1px solid var(--border-gold)',
+              borderRadius: 10,
+              zIndex: 2000,
+              maxHeight: 280,
+              overflowY: 'auto',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(245, 158, 11, 0.25)'
+            }}
+          >
+            {suggestions.length > 0 ? (
+              suggestions.map((s, idx) => (
+                <div
+                  key={idx}
+                  onClick={() => handleSelectCity(s)}
+                  style={{
+                    padding: '11px 14px',
+                    cursor: 'pointer',
+                    borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+                    fontSize: '0.84rem',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    transition: 'background-color 0.15s ease'
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(245, 158, 11, 0.15)')}
+                  onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                >
+                  <div>
+                    <strong style={{ color: 'var(--gold-300)' }}>{s.name}</strong>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginLeft: 6 }}>
+                      ({s.state ? `${s.state}, ` : ''}{s.country})
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                    {s.latitude}°, {s.longitude}°
                   </span>
                 </div>
-                <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
-                  {s.latitude}°, {s.longitude}°
-                </span>
+              ))
+            ) : !isSearching ? (
+              <div style={{ padding: '14px 16px', fontSize: '0.82rem', color: 'var(--text-muted)', textAlign: 'center' }}>
+                No cities found for &ldquo;{searchQuery}&rdquo;. Try another town or select on the map.
               </div>
-            ))}
+            ) : null}
           </div>
         )}
       </div>
@@ -279,24 +455,105 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({ location, onChan
         ))}
       </div>
 
-      {/* Interactive Leaflet Map Container */}
-      {showMap && (
-        <div style={{ marginTop: 12 }}>
-          <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: 6 }}>
-            Click anywhere on the globe or drag the pin to set exact coordinates for high-precision Drigganita calculation.
+      {/* Interactive Resizable Leaflet Map Container */}
+      <div style={{ marginTop: 14, display: showMap ? 'block' : 'none' }}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 8,
+          marginBottom: 8
+        }}>
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0 }}>
+            Click anywhere on the globe or drag the pin to set exact coordinates.
           </p>
+
+          {/* Quick Height Presets */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Height:</span>
+            {[
+              { label: 'Compact', h: 220 },
+              { label: 'Medium', h: 340 },
+              { label: 'Large', h: 500 },
+              { label: 'Full', h: 680 }
+            ].map(preset => (
+              <button
+                key={preset.label}
+                type="button"
+                onClick={() => {
+                  setMapHeight(preset.h);
+                  try {
+                    localStorage.setItem('panchangam_map_height', String(preset.h));
+                  } catch {}
+                }}
+                style={{
+                  backgroundColor: Math.abs(mapHeight - preset.h) < 30 ? 'rgba(245, 158, 11, 0.25)' : 'rgba(255, 255, 255, 0.05)',
+                  border: Math.abs(mapHeight - preset.h) < 30 ? '1px solid var(--gold-400)' : '1px solid var(--border-subtle)',
+                  color: Math.abs(mapHeight - preset.h) < 30 ? 'var(--gold-300)' : 'var(--text-secondary)',
+                  borderRadius: 6,
+                  padding: '2px 8px',
+                  fontSize: '0.7rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Resizable Map Canvas Wrapper */}
+        <div
+          style={{
+            position: 'relative',
+            borderRadius: 12,
+            border: isResizing ? '1px solid var(--gold-400)' : '1px solid var(--border-gold)',
+            boxShadow: isResizing ? '0 0 16px rgba(245, 158, 11, 0.3)' : 'none',
+            overflow: 'hidden',
+            transition: isResizing ? 'none' : 'border-color 0.2s ease, box-shadow 0.2s ease'
+          }}
+        >
           <div
             ref={mapContainerRef}
             style={{
-              height: 260,
+              height: mapHeight,
               width: '100%',
-              borderRadius: 12,
-              border: '1px solid var(--border-gold)',
-              overflow: 'hidden'
+              backgroundColor: '#0c1220'
             }}
           />
+
+          {/* Interactive Drag Handle to Resize Height */}
+          <div
+            onMouseDown={e => {
+              e.preventDefault();
+              handleDragStart(e.clientY);
+            }}
+            onTouchStart={e => {
+              if (e.touches[0]) handleTouchDragStart(e.touches[0].clientY);
+            }}
+            title="Click and drag to freely adjust map height"
+            style={{
+              height: 24,
+              backgroundColor: isResizing ? 'rgba(245, 158, 11, 0.35)' : 'rgba(15, 23, 42, 0.95)',
+              borderTop: '1px solid rgba(245, 158, 11, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              cursor: 'ns-resize',
+              userSelect: 'none',
+              transition: 'background-color 0.15s ease'
+            }}
+          >
+            <GripHorizontal size={14} color="var(--gold-400)" />
+            <span style={{ fontSize: '0.68rem', color: 'var(--gold-300)', fontWeight: 500, letterSpacing: '0.02em' }}>
+              {mapHeight}px • Drag to Resize
+            </span>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };
