@@ -62,21 +62,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
           </button>
         </div>
 
-        {/* Demo Credentials Prompt */}
-        <div style={{
-          backgroundColor: 'rgba(245, 158, 11, 0.08)',
-          border: '1px solid rgba(245, 158, 11, 0.25)',
-          borderRadius: 8,
-          padding: '10px 12px',
-          fontSize: '0.75rem',
-          color: 'var(--gold-300)',
-          marginBottom: 16
-        }}>
-          <strong>Demo Logins:</strong><br />
-          👤 User: <code>9876543210</code> / <code>user123</code><br />
-          🛡️ Admin: <code>9999999999</code> / <code>admin123</code>
-        </div>
-
         {error && (
           <div style={{
             display: 'flex',
