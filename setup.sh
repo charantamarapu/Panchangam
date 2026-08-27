@@ -104,7 +104,7 @@ PORT=${API_PORT}
 JWT_SECRET=${JWT_SECRET}
 DATABASE_URL="file:./panchangam.db"
 ADMIN_PHONE="9999999999"
-ADMIN_PASSWORD="PanchangamAdmin@2026"
+ADMIN_PASSWORD="admin123"
 EOF
     echo -e "${GREEN}[✓] Created apps/api/.env with secure JWT secret.${NC}"
 else
@@ -219,5 +219,5 @@ echo -e "   ${CYAN}sudo certbot --nginx -d ${DOMAIN} --redirect${NC}"
 echo ""
 echo -e "${GOLD}DEFAULT ADMIN CREDENTIALS:${NC}"
 echo -e "   Phone:    ${CYAN}9999999999${NC}"
-echo -e "   Password: ${CYAN}PanchangamAdmin@2026${NC}"
+echo -e "   Password: ${CYAN}admin123${NC}"
 echo "======================================================================"
