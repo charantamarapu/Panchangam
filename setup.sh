@@ -58,7 +58,7 @@ fi
 # 3. INSTALL SYSTEM DEPENDENCIES & NODE.JS 20 LTS
 echo -e "${CYAN}[2/7] Updating system packages and installing Node.js 20 LTS & Nginx...${NC}"
 sudo apt update -y
-sudo apt install -y curl git build-essential nginx certbot python3-certbot-nginx ufw iptables-persistent
+sudo apt install -y curl git build-essential nginx certbot python3-certbot-nginx
 
 if ! command -v node &> /dev/null || [ "$(node -v | cut -d'.' -f1 | tr -d 'v')" -lt 20 ]; then
     echo -e "${GOLD}[i] Installing Node.js 20 LTS...${NC}"
@@ -74,16 +74,22 @@ if ! command -v pm2 &> /dev/null; then
     sudo npm install -g pm2
 fi
 
-# 4. ORACLE CLOUD FIREWALL (IPTABLES & UFW UNBLOCKING)
+# 4. ORACLE CLOUD FIREWALL (IPTABLES UNBLOCKING)
 echo -e "${CYAN}[3/7] Unblocking Oracle Cloud Ubuntu iptables & firewall for HTTP/HTTPS...${NC}"
 # Oracle Cloud images drop HTTP/HTTPS by default in iptables:
-sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport 80 -j ACCEPT 2>/dev/null || true
-sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport 443 -j ACCEPT 2>/dev/null || true
-sudo netfilter-persistent save 2>/dev/null || true
+sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport 80 -j ACCEPT 2>/dev/null || sudo iptables -I INPUT 1 -p tcp --dport 80 -j ACCEPT 2>/dev/null || true
+sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport 443 -j ACCEPT 2>/dev/null || sudo iptables -I INPUT 1 -p tcp --dport 443 -j ACCEPT 2>/dev/null || true
 
-sudo ufw allow 'Nginx Full' 2>/dev/null || true
-sudo ufw allow OpenSSH 2>/dev/null || true
-sudo ufw --force enable 2>/dev/null || true
+# Persist iptables rules if netfilter-persistent is available
+if command -v netfilter-persistent &> /dev/null; then
+    sudo netfilter-persistent save 2>/dev/null || true
+fi
+
+# If ufw is active, allow Nginx
+if command -v ufw &> /dev/null && sudo ufw status 2>/dev/null | grep -q "Status: active"; then
+    sudo ufw allow 'Nginx Full' 2>/dev/null || true
+    sudo ufw allow OpenSSH 2>/dev/null || true
+fi
 echo -e "${GREEN}[✓] Firewall configured for Port 80 (HTTP) and Port 443 (HTTPS).${NC}"
 
 # 5. ENVIRONMENT SETUP & DATABASE MIGRATION
