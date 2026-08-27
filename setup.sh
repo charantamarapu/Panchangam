@@ -42,10 +42,17 @@ if [ "$EXISTING_SWAP" -le 1 ]; then
     sudo chmod 600 /swapfile
     sudo mkswap /swapfile
     sudo swapon /swapfile
-    echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
-    echo -e "${GREEN}[✓] 2GB Swapfile successfully active.${NC}"
+    if ! grep -q '/swapfile' /etc/fstab; then
+        echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+    fi
+    # Tune swappiness so Linux uses RAM first and swaps only under pressure
+    sudo sysctl vm.swappiness=20 2>/dev/null || true
+    if ! grep -q 'vm.swappiness' /etc/sysctl.conf; then
+        echo 'vm.swappiness=20' | sudo tee -a /etc/sysctl.conf
+    fi
+    echo -e "${GREEN}[✓] 2GB Swapfile created, enabled, and persisted across reboots via /etc/fstab.${NC}"
 else
-    echo -e "${GREEN}[✓] Swap memory is already configured.${NC}"
+    echo -e "${GREEN}[✓] Swap memory is already active and configured.${NC}"
 fi
 
 # 3. INSTALL SYSTEM DEPENDENCIES & NODE.JS 20 LTS
