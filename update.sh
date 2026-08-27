@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# 🕉️ Vedic Panchangam & Shraddha Platform - Zero-Downtime Update Script
+# 🕉️ Real Panchangam & Shraddha Platform - Zero-Downtime Update Script
 # Updates repository, runs database migrations, rebuilds apps, and restarts PM2
 # ==============================================================================
 
@@ -16,7 +16,7 @@ NC='\033[0m'
 
 echo -e "${GOLD}"
 echo "======================================================================"
-echo "🕉️  PANCHANGAM PLATFORM - CHECKING FOR UPDATES"
+echo "🕉️  REAL PANCHANGAM PLATFORM - CHECKING FOR UPDATES"
 echo "    Directory: ${PROJECT_DIR}"
 echo "======================================================================"
 echo -e "${NC}"

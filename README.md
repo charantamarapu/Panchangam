@@ -1,6 +1,8 @@
-# 🕉️ High-Precision Multi-Mutt Vedic Panchangam & Shraddha Platform
+# 🕉️ Real Panchangam — High-Precision Multi-Mutt Vedic Ephemeris & Shraddha Platform
 
 An enterprise-grade, high-precision Vedic Panchangam platform engineered to compute daily Panchangam, multi-mutt Sampradaya differences (Advaita, Vishishtadvaita, Dvaita), and ancestral Shraddha dates accurately for **any location on Earth**.
+
+Hosted at: **[https://realpanchangam.run.place](https://realpanchangam.run.place)**
 
 Built as an **API-first architecture** with an interactive **Swagger/OpenAPI documentation portal**, enabling third-party mobile apps (Flutter, React Native, iOS, Android) and web clients to consume the calculations directly.
 

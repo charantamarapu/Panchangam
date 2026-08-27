@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# 🕉️ Vedic Panchangam & Shraddha Platform - Automated Production Setup
+# 🕉️ Real Panchangam & Shraddha Platform - Automated Production Setup
 # Target Environment: Oracle Cloud Infrastructure (OCI) Ubuntu 22.04 / 24.04 LTS
 # Domain: realpanchangam.run.place
 # ==============================================================================
@@ -20,7 +20,7 @@ NC='\033[0m'
 
 echo -e "${GOLD}"
 echo "======================================================================"
-echo "🕉️  PANCHANGAM PLATFORM - ORACLE CLOUD PRODUCTION DEPLOYMENT"
+echo "🕉️  REAL PANCHANGAM PLATFORM - ORACLE CLOUD PRODUCTION DEPLOYMENT"
 echo "    Domain: ${DOMAIN}"
 echo "    Path:   ${PROJECT_DIR}"
 echo "======================================================================"

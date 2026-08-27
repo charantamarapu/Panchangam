@@ -99,10 +99,12 @@ export const Header: React.FC<HeaderProps> = ({
               fontWeight: 700,
               letterSpacing: '0.5px'
             }} className="gold-gradient-text">
-              Panchangam Drigganita
+              {languageMode === LanguageMode.SANSKRIT_DEVANAGARI ? 'रियल पञ्चाङ्गम्' : 'Real Panchangam'}
             </h1>
             <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
-              High-Precision Vedic Ephemeris & Shraddha Hub
+              {languageMode === LanguageMode.SANSKRIT_DEVANAGARI
+                ? 'दृग्गणित पञ्चाङ्गम् तथा वार्षिक श्राद्ध निर्णयः'
+                : 'High-Precision Vedic Ephemeris & Shraddha Hub'}
             </p>
           </div>
         </div>

@@ -198,7 +198,7 @@ export const App: React.FC = () => {
       }}>
         <div style={{ maxWidth: 1400, margin: '0 auto' }}>
           <div>
-            🕉️ <strong>Vedic Panchangam Platform</strong> • High-Precision Drigganita calculations for any location globally.
+            🕉️ <strong>Real Panchangam Platform</strong> • High-Precision Drigganita calculations for any location globally.
           </div>
           <div style={{ marginTop: 6, display: 'flex', justifyContent: 'center', gap: 16, flexWrap: 'wrap' }}>
             <span>Dvaita & Vishishtadvaita Vaishnava Nirnaya</span>

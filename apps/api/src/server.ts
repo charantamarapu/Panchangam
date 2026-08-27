@@ -49,15 +49,19 @@ export async function buildServer() {
   await server.register(swagger, {
     openapi: {
       info: {
-        title: 'Vedic Panchangam & Shraddha API',
-        description: 'High-Precision, Multi-Mutt Drigganita Panchangam and Ancestral Shraddha Remembrance Engine for any location on Earth.',
+        title: 'Real Panchangam & Shraddha API',
+        description: 'High-Precision, Multi-Mutt Drigganita Real Panchangam and Ancestral Shraddha Remembrance Engine for any location on Earth.',
         version: '1.0.0',
         contact: {
-          name: 'Panchangam Platform API Team',
-          url: 'https://panchangam.app'
+          name: 'Real Panchangam API Team',
+          url: 'https://realpanchangam.run.place'
         }
       },
       servers: [
+        {
+          url: 'https://realpanchangam.run.place',
+          description: 'Production Server (realpanchangam.run.place)'
+        },
         {
           url: 'http://localhost:4000',
           description: 'Local Development Server'
@@ -121,7 +125,7 @@ async function start() {
     const host = '0.0.0.0';
 
     await server.listen({ port, host });
-    console.log(`\n🕉️  Panchangam API Server running at http://localhost:${port}`);
+    console.log(`\n🕉️  Real Panchangam API Server running at http://localhost:${port}`);
     console.log(`📖 Interactive Swagger Documentation at http://localhost:${port}/docs\n`);
   } catch (err) {
     console.error('Failed to start server:', err);
